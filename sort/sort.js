@@ -18,7 +18,6 @@ var WIDGET_HEIGHT = 140;
  */
 
 var sorter;
-
 window.onload = function() {
     sorter = new Sorter({
         'identifier': '#sort-game',
@@ -32,7 +31,6 @@ window.onload = function() {
 };
 
 window.addEventListener('resize', redraw);
-
 var size_timeout;
 function redraw() {
     sorter.redraw(window.innerWidth, WIDGET_HEIGHT); 
@@ -51,7 +49,7 @@ var Sorter = function(opts) {
     this.height = opts.height;
     this.num_elts = opts.num_elts;
     this.algorithms = opts.algorithms;
-    this.alg = opts.initial; // chosen algorithms
+    this.alg = opts.initial; // initial algorithm
 }
 
 Sorter.prototype.create_elts = function() {
@@ -85,7 +83,6 @@ Sorter.prototype.draw = function() {
 
     this.box_g = svg.append('g');
     this.label_g = svg.append('g');
-
    
     // configuration bar 
     var settings_container = canvas.append('div')
@@ -109,7 +106,6 @@ Sorter.prototype.draw = function() {
 
         if (alg == this.alg)
             choice.attr('selected', 'selected');
-
     }
     alg_chooser.on('change', function() {
         alg = alg_chooser.property('value');
@@ -269,7 +265,6 @@ Sorter.prototype.box_clicked = function(index) {
                         boxes[i].success();
                 }, LONG_TRANSITION);
             }
-
         }
         // remove all selected elements
         this.selected = [];
