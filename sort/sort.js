@@ -58,7 +58,8 @@ Sorter.prototype.create_elts = function() {
     this.elts = [];
     for (var i = 1; i <= this.num_elts; i++) 
         this.elts.push(i);
-    this.elts = shuffle(this.elts);
+    while (ordered(this.elts))
+        this.elts = shuffle(this.elts);
     this.ordering = this.algorithms[this.alg]['orderer'](this.elts); 
 }
 
@@ -87,7 +88,7 @@ Sorter.prototype.draw = function() {
 
     this.draw_boxes();
    
-    // configuration settings
+    // configuration bar 
     var settings_container = canvas.append('div')
         .classed('container', true);
     var settings = settings_container.append('div')
@@ -98,12 +99,17 @@ Sorter.prototype.draw = function() {
         .classed('col-xs-4', true);
     var stats_col = settings.append('div')
         .classed('col-xs-4', true);
-    
+   
+    // algorithm chooser
     var alg_chooser = alg_col.append('select');
     for (var alg in this.algorithms) {
-        alg_chooser.append('option')
+        var choice = alg_chooser.append('option')
             .attr('value', alg)
             .html(this.algorithms[alg]['headline']);
+
+        if (alg == this.alg)
+            choice.attr('selected', 'selected');
+
     }
     alg_chooser.on('change', function() {
         alg = alg_chooser.property('value');
@@ -111,6 +117,33 @@ Sorter.prototype.draw = function() {
             'algorithm': alg
         });
     });
+
+    // number of points chooser
+    var num_chooser = num_col.append('div')
+        .classed('btn-group', true)
+        .attr('role', 'group');
+    this.num_elts_less = num_chooser.append('button')
+        .attr('type', 'button')
+        .classed('btn', true)
+        .classed('btn-default', true)
+        .html('-')
+        .on('click', function() {
+            _this.change_num_elts(_this.num_elts - 1);
+        });
+    this.num_elts_field = num_chooser.append('button')
+        .attr('type', 'button')
+        .attr('disabled', true)
+        .classed('btn', true)
+        .classed('btn-default', true)
+        .html(this.num_elts);
+    this.num_elts_more = num_chooser.append('button')
+        .attr('type', 'button')
+        .classed('btn', true)
+        .classed('btn-default', true)
+        .html('+')
+        .on('click', function() {
+            _this.change_num_elts(_this.num_elts + 1);
+        });
 }
 
 // drawing of boxes, happens on each re-render
@@ -235,8 +268,13 @@ Sorter.prototype.box_clicked = function(index) {
     }
 }
 
-Sorter.prototype.success = function() {
-    alert('Success!');
+Sorter.prototype.change_num_elts = function(n) {
+    this.num_elts_field.html(n);
+    this.num_elts_less.attr('disabled', n <= 2 ? true : null);
+    this.num_elts_more.attr('disabled', n >= 10 ? true : null);
+    this.reconfigure({
+        'num_elts': n
+    });
 }
 
 /**
@@ -349,6 +387,15 @@ function shuffle(array) {
     array[randomIndex] = temporaryValue;
   }
   return array;
+}
+
+// returns true if array is ordered
+function ordered(arr) {
+    for (var i = 0; i < arr.length - 1; i++) {
+        if (arr[i] > arr[i + 1])
+            return false
+    }
+    return true
 }
 
 function sorter_height(width) {
