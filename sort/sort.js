@@ -35,7 +35,7 @@ window.addEventListener('resize', redraw);
 
 var size_timeout;
 function redraw() {
-    clearTimeout(size_timeout);
+    sorter.redraw(window.innerWidth, WIDGET_HEIGHT); 
     size_timeout = setTimeout(function() {
         sorter.redraw(window.innerWidth, WIDGET_HEIGHT); 
     }, 100);
@@ -86,12 +86,12 @@ Sorter.prototype.draw = function() {
     this.box_g = svg.append('g');
     this.label_g = svg.append('g');
 
-    this.draw_boxes();
    
     // configuration bar 
     var settings_container = canvas.append('div')
         .classed('container', true);
     var settings = settings_container.append('div')
+        .style('text-align', 'center')
         .classed('row', true);
     var alg_col = settings.append('div')
         .classed('col-xs-4', true);
@@ -144,10 +144,17 @@ Sorter.prototype.draw = function() {
         .on('click', function() {
             _this.change_num_elts(_this.num_elts + 1);
         });
+
+    this.timer = new Timer({
+        'loc': stats_col
+    });
+    this.timer.draw();
+    this.draw_boxes();
 }
 
 // drawing of boxes, happens on each re-render
 Sorter.prototype.draw_boxes = function() {
+    this.timer.start();
     this.title.html(this.algorithms[this.alg]['headline']);
     this.box_g.selectAll('*').remove();
     this.label_g.selectAll('*').remove();
@@ -256,6 +263,7 @@ Sorter.prototype.box_clicked = function(index) {
 
             if (this.ordering.length == 0) {
                 var boxes = this.boxes;
+                this.timer.stop();
                 setTimeout(function() {
                     for (var i = 0; i < boxes.length; i++)
                         boxes[i].success();
@@ -373,6 +381,42 @@ Box.prototype.success = function() {
 }
 
 /**
+ * Timer
+ */
+
+timeInterval = null;
+
+var Timer = function(opts) {
+    this.time = 0;
+    this.loc = opts.loc;
+}
+
+Timer.prototype.draw = function() {
+    this.label = this.loc.append('p')
+        .classed('time-text', true)
+        .html(time_format(this.time));
+}
+
+Timer.prototype.start = function() {
+    var _this = this;
+    this.time = 0;
+    clearInterval(timeInterval);
+    timeInterval = setInterval(function() {
+        _this.time += 0.1;
+        _this.label.html(time_format(_this.time));
+    }, 100);
+}
+
+Timer.prototype.stop = function() {
+    clearInterval(timeInterval);
+}
+
+Timer.prototype.reset = function() {
+    this.stop();
+    this.start();
+}
+
+/**
  * Helper Functions
  */
 
@@ -398,8 +442,8 @@ function ordered(arr) {
     return true
 }
 
-function sorter_height(width) {
-    return width / (4/3);
+function time_format(t) {
+    return parseFloat(t).toFixed(1) + ' s';
 }
 
 // returns the ordering of swaps required for bubble sort

@@ -14,6 +14,11 @@
     text-align: center;
 }
 
+.time-text {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 32px;
+}
+
 .box {
     stroke-width: 3;
     stroke: #000000;
