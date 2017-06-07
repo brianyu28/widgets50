@@ -24,7 +24,9 @@ window.onload = function() {
         'identifier': '#sort-game',
         'width': window.innerWidth,
         'height': WIDGET_HEIGHT,
-        'num_elts': 8
+        'num_elts': 8,
+        'algorithms': algorithms,
+        'initial': 'bubble'
     });
     sorter.draw();
 };
@@ -48,26 +50,31 @@ var Sorter = function(opts) {
     this.width = opts.width;
     this.height = opts.height;
     this.num_elts = opts.num_elts;
-    this.selected = [];  // currently selected element indices 
+    this.algorithms = opts.algorithms;
+    this.alg = opts.initial; // chosen algorithms
+}
 
-    // add elements
+Sorter.prototype.create_elts = function() {
     this.elts = [];
     for (var i = 1; i <= this.num_elts; i++) 
         this.elts.push(i);
     this.elts = shuffle(this.elts);
-    this.ordering = bubble_order(this.elts); 
+    this.ordering = this.algorithms[this.alg]['orderer'](this.elts); 
 }
 
+// initial drawing setup
 Sorter.prototype.draw = function() {
+    var _this = this;
     var canvas = d3.select(this.identifier);
-
-    var title = canvas.append('p')
+    canvas.selectAll('*').remove();
+    
+    // show headline
+    this.title = canvas.append('p')
         .classed('headline', true)
-        .html('Bubble Sort');
-    var subhead = canvas.append('p')
+        .html(this.algorithms[this.alg]['headline']);
+    this.subhead = canvas.append('p')
         .classed('subhead', true)
         .html('Click on two items to swap them.');
-
 
     var svg = canvas.append('svg')
         .attr('width', this.width)
@@ -77,6 +84,42 @@ Sorter.prototype.draw = function() {
 
     this.box_g = svg.append('g');
     this.label_g = svg.append('g');
+
+    this.draw_boxes();
+   
+    // configuration settings
+    var settings_container = canvas.append('div')
+        .classed('container', true);
+    var settings = settings_container.append('div')
+        .classed('row', true);
+    var alg_col = settings.append('div')
+        .classed('col-xs-4', true);
+    var num_col = settings.append('div')
+        .classed('col-xs-4', true);
+    var stats_col = settings.append('div')
+        .classed('col-xs-4', true);
+    
+    var alg_chooser = alg_col.append('select');
+    for (var alg in this.algorithms) {
+        alg_chooser.append('option')
+            .attr('value', alg)
+            .html(this.algorithms[alg]['headline']);
+    }
+    alg_chooser.on('change', function() {
+        alg = alg_chooser.property('value');
+        _this.reconfigure({
+            'algorithm': alg
+        });
+    });
+}
+
+// drawing of boxes, happens on each re-render
+Sorter.prototype.draw_boxes = function() {
+    this.title.html(this.algorithms[this.alg]['headline']);
+    this.box_g.selectAll('*').remove();
+    this.label_g.selectAll('*').remove();
+    this.create_elts();
+    this.selected = [];  // currently selected element indices 
     
     var padding_x = 0.1 * this.width;
     var sorting_width = this.width - 2 * padding_x;
@@ -91,7 +134,7 @@ Sorter.prototype.draw = function() {
             'contents': this.elts[i],
             'x': padding_x + i * box_width,
             'y': start_y,
-            'svg': svg,
+            'svg': this.svg,
             'box_g': this.box_g,
             'label_g': this.label_g,
             'height': box_height,
@@ -103,6 +146,16 @@ Sorter.prototype.draw = function() {
     }
 }
 
+// for changed algorithm or number of points
+Sorter.prototype.reconfigure = function(opts) {
+    if ('num_elts' in opts)
+        this.num_elts = opts.num_elts;
+    if ('algorithm' in opts)
+        this.alg = opts.algorithm;
+    this.draw_boxes();
+}
+
+// for window resizing
 Sorter.prototype.redraw = function(width, height) {
     this.width = width;
     this.height = height;
@@ -204,7 +257,6 @@ var Box = function(opts) {
 }
 
 Box.prototype.draw = function() {
-    _this = this;
     var box = this.box_g.append('rect')
         .attr('x', this.x)
         .attr('y', this.y)
@@ -318,4 +370,56 @@ function bubble_order(arr) {
         }
     }
     return ordering;
+}
+
+function selection_order(arr) {
+    arr = arr.slice();
+    var ordering = [];
+    var min_index;
+    for (var i = 0; i < arr.length - 1; i++) {
+        min_index = i;
+        for (var j = i + 1; j < arr.length; j++) {
+            if (arr[j] < arr[min_index])
+                min_index = j;
+        }
+        var temp = arr[min_index];
+        arr[min_index] = arr[i];
+        arr[i] = temp;
+        
+        // no need to swap if they're the same value
+        if (min_index != i)
+            ordering.push([min_index, i].sort());
+    }
+    return ordering;
+}
+
+function insertion_order(arr) {
+    arr = arr.slice();
+    var ordering = [];
+    for (var i = 0; i < arr.length; i++) {
+        var key = arr[i];
+        j = i - 1;
+        while (j >= 0 && arr[j] > key) {
+            arr[j + 1] = arr[j];
+            ordering.push([j, j + 1]);
+            j = j - 1;
+        }
+        arr[j + 1] = key;
+    }
+    return ordering;
+}
+
+var algorithms = {
+    'bubble': {
+        'headline': 'Bubble Sort',
+        'orderer': bubble_order
+    },
+    'selection': {
+        'headline': 'Selection Sort',
+        'orderer': selection_order
+    },
+    'insertion': {
+        'headline': 'Insertion Sort',
+        'orderer': insertion_order
+    }
 }
